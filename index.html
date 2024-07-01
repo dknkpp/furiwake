@@ -79,9 +79,12 @@
         }
 
         .centerify {
-            text-align: center;
             display: flex;
             justify-content: center;
+        }
+
+        form.center {
+            text-align: center;
         }
 
         .tab-wrap {
@@ -119,6 +122,13 @@
                 display: block;
                 padding: 20px;
             }
+        .fflow {
+            display: flex;
+            flex-flow: row wrap;
+        }
+        .settings {
+            text-align:left;
+        }
     </style>
     <script type="text/javascript" src="https://html2canvas.hertzen.com/dist/html2canvas.min.js" crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
@@ -134,6 +144,14 @@
         function getUniqueId() {
             return "item" + idCnt++;
         }
+
+        let sObj = {
+            fn: "メイリオ",
+            fs: 25,
+            bd: true,
+            aw: 98,
+            ah: 70,
+        };
         window.onload = function () {
 
             let qitem = getParam('i');
@@ -146,6 +164,12 @@
                 categories = JSON.parse(cats);
             }
 
+            let sss = getParam('s');
+            if (sss !== null) {
+                sObj = JSON.parse(sss);
+            }
+
+            putSettings(document.fsettings);
 
             $("#hcat1").text(categories[0]);
             $("#hcat2").text(categories[1]);
@@ -269,7 +293,6 @@
                     1;
 
                 e.dataTransfer.setData("application/json", JSON.stringify({ obj }));
-                console.log(e);
             };
 
             const handleDragEnd = (e) => e.target.classList.remove("dragging");
@@ -304,6 +327,11 @@
         function addItem(name) {
             let d = document.createElement("div");
             d.classList.add("item");
+
+            d.style.fontFamily = sObj.fn;
+            d.style.fontSize = sObj.fs + "px";
+            d.style.border = (sObj.bd) ? "1px solid black" : "0px";
+
             d.setAttribute("draggable", true);
             d.append(document.createTextNode(name));
             d.id = getUniqueId();
@@ -323,9 +351,11 @@
         function resetURL() {
             document.furl.url.value = selfURL()
                 + "?c="
-                + encodeURIComponent( JSON.stringify([$('#hcat1').text(), $('#hcat2').text()]) )
+                + encodeURIComponent(JSON.stringify([$('#hcat1').text(), $('#hcat2').text()]))
                 + "&i="
                 + getItemList()
+                + "&s="
+                + encodeURIComponent(JSON.stringify(sObj))
                 ;
         }
 
@@ -352,16 +382,47 @@
             }
             return searchParam.get(type);
         }
+        function settingsUpdate(fm) {
+            sObj.fn = fm.fontfamily.value;
+            sObj.fs = fm.fontsize.value;
+            sObj.bd = fm.isBorder.checked;
+            sObj.aw = fm.areawidth.value;
+            sObj.ah = fm.areaheight.value;
+            setSettings();
+            resetURL();
+        }
+
+        function putSettings(fm) {
+            fm.fontfamily.value = sObj.fn;
+            fm.fontsize.value = sObj.fs ;
+            fm.isBorder.checked = sObj.bd;
+            fm.areawidth.value = sObj.aw ;
+            fm.areaheight.value = sObj.ah;
+            setSettings();
+        }
+
+        function setSettings() {
+            $(".grid").css("width", sObj.aw + "%");
+            $(".grid").css("grid-template-rows", "auto " + sObj.ah + "vh");
+            let items = [...document.querySelectorAll(".item")];
+            for (let i of items) {
+                i.style.fontFamily = sObj.fn;
+                i.style.fontSize = sObj.fs + "px";
+                i.style.border = sObj.bd ? "1px solid black" : "0";
+            }
+        }
     </script>
 </head>
 <body>
 
-    <div class="grid" id="area">
-        <h1 id="hcat1">すき</h1>
-        <h1 id="hcat2">きらい</h1>
-        <div class="box box1">
-        </div>
-        <div class="box box2">
+    <div class="centerify">
+        <div class="grid" id="area">
+            <h1 id="hcat1">すき</h1>
+            <h1 id="hcat2">きらい</h1>
+            <div class="box box1">
+            </div>
+            <div class="box box2">
+            </div>
         </div>
     </div>
 
@@ -373,6 +434,7 @@
                 <li class="tab-btn">分類カテゴリ</li>
                 <li class="tab-btn">保存</li>
                 <li class="tab-btn">共有</li>
+                <li class="tab-btn">設定</li>
             </ul>
             <div class="tab-contents show">
                 <div class="lgrid">
@@ -383,25 +445,40 @@
                 </div>
             </div>
             <div class="tab-contents">
-                <form name="fadd" class="centerify">
+                <form name="fadd" class="center">
                     <input type="text" name="newitem" size="10"><input type="button" value="追加" onclick="addNewItem(this.form);">
                 </form>
             </div>
             <div class="tab-contents">
-                <form name="fcategory" class="centerify">
+                <form name="fcategory" class="center">
                     <input type="text" name="cat1" size="15" onkeyup="setCategory(this.form);">
                     <input type="text" name="cat2" size="15" onkeyup="setCategory(this.form);">
                 </form>
             </div>
             <div class="tab-contents">
-                <form name="fsave" class="centerify">
+                <form name="fsave" class="center">
                     <input type="button" value="画像として保存" onclick="save();"><a hidden href="" id="download"></a>
                 </form>
             </div>
             <div class="tab-contents">
-                <form name="furl" class="centerify">
+                <form name="furl" class="center">
                     <input type="text" name="url" value="" onclick="this.select();">
                     <input type="button" value="コピー" onclick="copy(this.form.url.value);">
+                </form>
+            </div>
+            <div class="tab-contents">
+                <form name="fsettings" class="centerify fflow">
+                    <fieldset class="settings">
+                        <legend>文字</legend>
+                        <span>フォント名 </span><input type="text" name="fontfamily" value="メイリオ" onblur="settingsUpdate(this.form)"><br>
+                        <span>フォントサイズ </span><input type="number" name="fontsize" value="14" onblur="settingsUpdate(this.form)"><br>
+                        <label><input type="checkbox" name="isBorder" checked onchange="settingsUpdate(this.form)">文字の枠</label>
+                    </fieldset>
+                    <fieldset class="settings">
+                        <legend>領域</legend>
+                        <span>横幅 </span><input type="number" name="areawidth" value="98" onblur="settingsUpdate(this.form)"><br>
+                        <span>高さ </span><input type="number" name="areaheight" value="70" onblur="settingsUpdate(this.form)"><br>
+                    </fieldset>
                 </form>
             </div>
         </div>
