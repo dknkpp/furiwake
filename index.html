@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+
+<html lang="ja" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>いろいろふりわけ</title>
+    <style type="text/css">
+        .list {
+            position: relative;
+            display: flex;
+            flex-flow: row wrap;
+            padding: 0.8em;
+        }
+
+        .grid {
+            border: 1px solid black;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 70vh;
+            margin: 1em;
+        }
+
+        .lgrid {
+            display: grid;
+            grid-template-columns: 1fr 70px;
+        }
+
+        .garbage{
+            margin-left: 1em;
+            background-repeat: no-repeat;
+            background-position: center center;
+        }
+
+        .gopen {
+            background-image: url("./img/g2.png");
+        }
+
+        .gclose {
+            background-image: url("./img/g1.png");
+        }
+
+        .container {
+            border: 1px solid black;
+        }
+
+        .box {
+            border: 1px solid black;
+            position: relative;
+        }
+
+        .box1, .box2 {
+            border: 1px solid black;
+            grid-template-rows: 80vh;
+        }
+
+        .item {
+            margin: 3px;
+            padding: 2px;
+            border: 1px solid black;
+        }
+
+        .dragging {
+            opacity: 0.5;
+        }
+
+        .over {
+            background-color: rgba(200, 200, 255, 0.3);
+        }
+
+
+        .abs {
+            position: absolute;
+        }
+
+        h1 {
+            text-align: center;
+            border: 1px solid black;
+            margin: 0px;
+        }
+
+        .centerify {
+            text-align: center;
+            display: flex;
+            justify-content: center;
+        }
+
+        .tab-wrap {
+            background-color: #fff;
+            padding: 0px;
+            margin: 0px;
+            width: 70em;
+            border: 1px solid black;
+        }
+
+            .tab-wrap ul {
+                display: flex;
+                background: #eee;
+                padding-inline-start: 0px;
+            }
+
+        .tab-btn {
+            width: 50%;
+            text-align: center;
+            list-style: none;
+            cursor: pointer;
+        }
+
+            .tab-btn.show {
+                background: #333;
+                border-top: 2px solid #333;
+                color: #fff;
+            }
+
+        .tab-contents {
+            display: none;
+        }
+
+            .tab-contents.show {
+                display: block;
+                padding: 20px;
+            }
+    </style>
+    <script type="text/javascript" src="https://html2canvas.hertzen.com/dist/html2canvas.min.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+
+        const searchParam = new URLSearchParams(window.location.search);
+
+        let defaultItems = [
+            "いぬ", "ねこ", "うさぎ", "とり", "ハムスター",
+        ];
+        let categories = ["すき", "きらい"];
+        let idCnt = 1;
+        function getUniqueId() {
+            return "item" + idCnt++;
+        }
+        window.onload = function () {
+
+            let qitem = getParam('i');
+            if (qitem !== null) {
+                defaultItems = JSON.parse(qitem);
+            }
+
+            let cats = getParam('c');
+            if (cats !== null) {
+                categories = JSON.parse(cats);
+            }
+
+
+            $("#hcat1").text(categories[0]);
+            $("#hcat2").text(categories[1]);
+            document.fcategory.cat1.value = categories[0];
+            document.fcategory.cat2.value = categories[1];
+
+            $('.tab-btn').on('click', function () {
+                var tabWrap = $(this).parents('.tab-wrap');
+                var tabBtn = tabWrap.find(".tab-btn");
+                var tabContents = tabWrap.find('.tab-contents');
+                tabBtn.removeClass('show');
+                $(this).addClass('show');
+                var elmIndex = tabBtn.index(this);
+                tabContents.removeClass('show');
+                tabContents.eq(elmIndex).addClass('show');
+            });
+
+            for (let i of defaultItems) {
+                addItem(i);
+            }
+
+            setItems();
+
+            // ドラッグ先エリア
+            {
+                const handleDragEnter = (e) => {
+                    if ([...e.target.classList].includes("item")) {
+                        return;
+                    }
+
+                    e.target.classList.add("over");
+
+                    if (e.target.classList.contains("garbage")) {
+                        e.target.classList.add("gopen");
+                        e.target.classList.remove("gclose");
+                    }
+                };
+
+                const handleDragLeave = (e) => {
+                    e.target.classList.remove("over");
+
+                    if (e.target.classList.contains("garbage")) {
+                        e.target.classList.remove("gopen");
+                        e.target.classList.add("gclose");
+                    }
+                }
+
+                const handleDragOver = (e) => {
+                    e.preventDefault();
+
+                    if ([...e.target.classList].includes("item")) {
+                        e.dataTransfer.dropEffect = "none";
+                        return;
+                    }
+
+                    e.dataTransfer.dropEffect = "move";
+                };
+
+                const handleDrop = (e) => {
+                    e.preventDefault();
+                    e.target.classList.remove("over");
+
+                    if (e.dataTransfer.files.length > 0) {
+                        return;
+                    }
+
+                    let { obj } = JSON.parse(e.dataTransfer.getData("application/json"));
+                    let id = obj.id;
+
+                    if (e.target.classList.contains("garbage")) {
+                        e.target.classList.remove("gopen");
+                        e.target.classList.add("gclose");
+                        let ob = document.getElementById(id);
+                        ob.parentElement.removeChild(ob);
+                        resetURL();
+                    } else {
+                        e.target.appendChild(document.getElementById(id));
+                        document.getElementById(id).style.left = e.offsetX - obj.x + "px";
+                        document.getElementById(id).style.top = e.offsetY - obj.y + "px";
+                        document.getElementById(id).classList.add("abs");
+                    }
+                };
+
+                const boxes = [...document.querySelectorAll(".box")];
+
+                for (const box of boxes) {
+                    box.addEventListener("dragenter", handleDragEnter, false);
+                    box.addEventListener("dragleave", handleDragLeave, false);
+                    box.addEventListener("dragover", handleDragOver, false);
+                    box.addEventListener("drop", handleDrop, false);
+                }
+            }
+
+            resetURL();
+        }
+
+        function setItems() {
+            const items = [...document.querySelectorAll(".item")];
+
+            const handleDragStart = (e) => {
+                e.target.classList.add("dragging");
+
+                e.dataTransfer.effectAllowed = "move";
+
+                let obj = new Object();
+                obj.id = e.target.id;
+                let st = document.getElementById(obj.id);
+
+
+                obj.x =
+                    e.x -
+                    st.offsetLeft -
+                    st.offsetParent.offsetLeft -
+                    (st.clientWidth - st.offsetWidth) +
+                    1;
+                obj.y =
+                    e.y -
+                    st.offsetTop -
+                    st.offsetParent.offsetTop -
+                    (st.clientHeight - st.offsetHeight) +
+                    1;
+
+                e.dataTransfer.setData("application/json", JSON.stringify({ obj }));
+                console.log(e);
+            };
+
+            const handleDragEnd = (e) => e.target.classList.remove("dragging");
+
+            for (const item of items) {
+                item.removeEventListener("dragstart", handleDragStart, false);
+                item.removeEventListener("dragend", handleDragEnd, false);
+
+                item.addEventListener("dragstart", handleDragStart, false);
+                item.addEventListener("dragend", handleDragEnd, false);
+            }
+
+        }
+
+        function save() {
+            html2canvas(document.querySelector("#area"), {
+            }).then(canvas => {
+                canvas.toBlob(blob => {
+                    $("#download")
+                        .attr("download", `${categories.join("")}ふりわけ.png`)
+                        .attr("href", window.URL.createObjectURL(blob));
+                    $('a#download')[0].click();
+                })
+            })
+        }
+
+        function setCategory(fm) {
+            $("#hcat1").text(fm.cat1.value);
+            $("#hcat2").text(fm.cat2.value);
+            resetURL();
+        }
+        function addItem(name) {
+            let d = document.createElement("div");
+            d.classList.add("item");
+            d.setAttribute("draggable", true);
+            d.append(document.createTextNode(name));
+            d.id = getUniqueId();
+            $(".list").append(d);
+        }
+
+        function addNewItem(fm) {
+            let t = fm.newitem.value;
+            if (t !== "") {
+                addItem(t);
+                setItems();
+                fm.newitem.value = "";
+                resetURL();
+            }
+        }
+
+        function resetURL() {
+            document.furl.url.value = selfURL()
+                + "?c="
+                + encodeURIComponent( JSON.stringify([$('#hcat1').text(), $('#hcat2').text()]) )
+                + "&i="
+                + getItemList()
+                ;
+        }
+
+        function getItemList() {
+            let items = [...document.querySelectorAll(".item")];
+            let r = [];
+            for (let i of items) {
+                r.push(i.textContent);
+            }
+            return encodeURIComponent( JSON.stringify(r));
+        }
+
+        function copy(str) {
+            navigator.clipboard.writeText(str);
+            alert("URL has been copied.");
+        }
+        function selfURL() {
+            return location.protocol + "//" + location.hostname + location.pathname;
+        }
+
+        function getParam(type) {
+            if (!searchParam.has(type)) {
+                return null;
+            }
+            return searchParam.get(type);
+        }
+    </script>
+</head>
+<body>
+
+    <div class="grid" id="area">
+        <h1 id="hcat1">すき</h1>
+        <h1 id="hcat2">きらい</h1>
+        <div class="box box1">
+        </div>
+        <div class="box box2">
+        </div>
+    </div>
+
+    <div class="centerify">
+        <div class="tab-wrap">
+            <ul>
+                <li class="tab-btn show">一覧</li>
+                <li class="tab-btn">項目追加</li>
+                <li class="tab-btn">分類カテゴリ</li>
+                <li class="tab-btn">保存</li>
+                <li class="tab-btn">共有</li>
+            </ul>
+            <div class="tab-contents show">
+                <div class="lgrid">
+                    <div class="box list">
+                    </div>
+                    <div class="box garbage gclose">
+                    </div>
+                </div>
+            </div>
+            <div class="tab-contents">
+                <form name="fadd" class="centerify">
+                    <input type="text" name="newitem" size="10"><input type="button" value="追加" onclick="addNewItem(this.form);">
+                </form>
+            </div>
+            <div class="tab-contents">
+                <form name="fcategory" class="centerify">
+                    <input type="text" name="cat1" size="15" onkeyup="setCategory(this.form);">
+                    <input type="text" name="cat2" size="15" onkeyup="setCategory(this.form);">
+                </form>
+            </div>
+            <div class="tab-contents">
+                <form name="fsave" class="centerify">
+                    <input type="button" value="画像として保存" onclick="save();"><a hidden href="" id="download"></a>
+                </form>
+            </div>
+            <div class="tab-contents">
+                <form name="furl" class="centerify">
+                    <input type="text" name="url" value="" onclick="this.select();">
+                    <input type="button" value="コピー" onclick="copy(this.form.url.value);">
+                </form>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
