@@ -307,16 +307,27 @@
 
         }
 
-        function save() {
-            html2canvas(document.querySelector("#area"), {
-            }).then(canvas => {
-                canvas.toBlob(blob => {
-                    $("#download")
-                        .attr("download", `${categories.join("")}ふりわけ.png`)
-                        .attr("href", window.URL.createObjectURL(blob));
-                    $('a#download')[0].click();
+        function save(isFile) {
+            if(isFile){
+                html2canvas(document.querySelector("#area"), {
+                }).then(canvas => {
+                    canvas.toBlob(blob => {
+                        $("#download")
+                            .attr("download", `${categories.join("")}ふりわけ.png`)
+                            .attr("href", window.URL.createObjectURL(blob));
+                        $('a#download')[0].click();
+                    })
                 })
-            })
+            }else{
+                html2canvas(document.querySelector("#area"), {
+                }).then(canvas => {
+                    canvas.toBlob(blob => {
+                        navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': blob })
+                        ]);
+                    })
+                })
+            }
         }
 
         function setCategory(fm) {
@@ -457,7 +468,8 @@
             </div>
             <div class="tab-contents">
                 <form name="fsave" class="center">
-                    <input type="button" value="画像として保存" onclick="save();"><a hidden href="" id="download"></a>
+                    <input type="button" value="画像として保存" onclick="save(true);"><a hidden href="" id="download"></a>
+                    <input type="button" value="クリップボードにコピー" onclick="save(false);">
                 </form>
             </div>
             <div class="tab-contents">
